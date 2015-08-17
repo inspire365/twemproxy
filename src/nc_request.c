@@ -103,6 +103,12 @@ req_put(struct msg *msg)
 
     ASSERT(msg->request);
 
+    if(msg->copyref == 1)
+    {
+      msg->copyref = 0;
+      return ;
+    }
+
     req_log(msg);
 
     pmsg = msg->peer;
@@ -305,12 +311,18 @@ req_server_enqueue_imsgq(struct context *ctx, struct conn *conn, struct msg *msg
      * noreply request are free from timeouts because client is not intrested
      * in the response anyway!
      */
-    if (!msg->noreply) {
+    if(conn->sd != msg->skip_rsp_fd)
+    {
+      if (!msg->noreply)
+      {
         msg_tmo_insert(msg, conn);
+      }
+      TAILQ_INSERT_TAIL(&conn->imsg_q, msg, s_tqe);
     }
-
-    TAILQ_INSERT_TAIL(&conn->imsg_q, msg, s_tqe);
-
+    else
+    {
+      TAILQ_INSERT_TAIL(&conn->imsg_q, msg, copyref_tqe);
+    }
     stats_server_incr(ctx, conn->owner, in_queue);
     stats_server_incr_by(ctx, conn->owner, in_queue_bytes, msg->mlen);
 }
@@ -345,8 +357,14 @@ req_server_dequeue_imsgq(struct context *ctx, struct conn *conn, struct msg *msg
     ASSERT(msg->request);
     ASSERT(!conn->client && !conn->proxy);
 
-    TAILQ_REMOVE(&conn->imsg_q, msg, s_tqe);
-
+    if(conn->sd == msg->skip_rsp_fd)
+    {
+      TAILQ_REMOVE(&conn->imsg_q, msg, copyref_tqe);
+    }
+    else
+    {
+      TAILQ_REMOVE(&conn->imsg_q, msg, s_tqe);
+    }
     stats_server_decr(ctx, conn->owner, in_queue);
     stats_server_decr_by(ctx, conn->owner, in_queue_bytes, msg->mlen);
 }
@@ -366,7 +384,14 @@ req_server_enqueue_omsgq(struct context *ctx, struct conn *conn, struct msg *msg
     ASSERT(msg->request);
     ASSERT(!conn->client && !conn->proxy);
 
-    TAILQ_INSERT_TAIL(&conn->omsg_q, msg, s_tqe);
+    if(conn->sd == msg->skip_rsp_fd)
+    {
+      TAILQ_INSERT_TAIL(&conn->omsg_q, msg, copyref_tqe);
+    }
+    else
+    {
+      TAILQ_INSERT_TAIL(&conn->omsg_q, msg, s_tqe);
+    }
 
     stats_server_incr(ctx, conn->owner, out_queue);
     stats_server_incr_by(ctx, conn->owner, out_queue_bytes, msg->mlen);
@@ -387,9 +412,15 @@ req_server_dequeue_omsgq(struct context *ctx, struct conn *conn, struct msg *msg
     ASSERT(msg->request);
     ASSERT(!conn->client && !conn->proxy);
 
-    msg_tmo_delete(msg);
-
-    TAILQ_REMOVE(&conn->omsg_q, msg, s_tqe);
+    if(conn->sd == msg->skip_rsp_fd)
+    {
+      TAILQ_REMOVE(&conn->omsg_q, msg, copyref_tqe);
+    }
+    else
+    {
+      msg_tmo_delete(msg);
+      TAILQ_REMOVE(&conn->omsg_q, msg, s_tqe);
+    }
 
     stats_server_decr(ctx, conn->owner, out_queue);
     stats_server_decr_by(ctx, conn->owner, out_queue_bytes, msg->mlen);
@@ -553,6 +584,66 @@ req_forward_stats(struct context *ctx, struct server *server, struct msg *msg)
 }
 
 static void
+req_forward_copy(struct context *ctx, struct conn *c_conn, struct msg *msg)
+{
+    rstatus_t status;
+    struct conn *s_conn;
+    struct server_pool *pool;
+    uint8_t *key;
+    uint32_t keylen;
+    struct keypos *kpos;
+
+    ASSERT(c_conn->client && !c_conn->proxy);
+
+    /* enqueue message (request) into client outq, if response is expected */
+    if (!msg->noreply) {
+        return ;
+    }
+
+    pool = c_conn->owner;
+
+    ASSERT(array_n(msg->keys) > 0);
+    kpos = array_get(msg->keys, 0);
+    key = kpos->start;
+    keylen = (uint32_t)(kpos->end - kpos->start);
+
+    s_conn = server_pool_conn(ctx, c_conn->owner, key, keylen, true);
+    if (s_conn == NULL) {
+        req_forward_error(ctx, c_conn, msg);
+        return;
+    }
+    ASSERT(!s_conn->client && !s_conn->proxy);
+
+    /* enqueue the message (request) into server inq */
+    if (TAILQ_EMPTY(&s_conn->imsg_q)) {
+        status = event_add_out(ctx->evb, s_conn);
+        if (status != NC_OK) {
+            req_forward_error(ctx, c_conn, msg);
+            s_conn->err = errno;
+            return;
+        }
+    }
+
+    if (!conn_authenticated(s_conn)) {
+        status = msg->add_auth(ctx, c_conn, s_conn);
+        if (status != NC_OK) {
+            req_forward_error(ctx, c_conn, msg);
+            s_conn->err = errno;
+            return;
+        }
+    }
+
+    msg->copyref = 1;
+    s_conn->enqueue_inq(ctx, s_conn, msg);
+
+    req_forward_stats(ctx, s_conn->owner, msg);
+
+    log_debug(LOG_VERB, "copy forward from c %d to s %d req %"PRIu64" len %"PRIu32
+              " type %d with key '%.*s'", c_conn->sd, s_conn->sd, msg->id,
+              msg->mlen, msg->type, keylen, key);
+}
+
+static void
 req_forward(struct context *ctx, struct conn *c_conn, struct msg *msg)
 {
     rstatus_t status;
@@ -576,7 +667,7 @@ req_forward(struct context *ctx, struct conn *c_conn, struct msg *msg)
     key = kpos->start;
     keylen = (uint32_t)(kpos->end - kpos->start);
 
-    s_conn = server_pool_conn(ctx, c_conn->owner, key, keylen);
+    s_conn = server_pool_conn(ctx, c_conn->owner, key, keylen, false);
     if (s_conn == NULL) {
         req_forward_error(ctx, c_conn, msg);
         return;

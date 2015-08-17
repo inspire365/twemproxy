@@ -644,7 +644,7 @@ server_pool_hash(struct server_pool *pool, uint8_t *key, uint32_t keylen)
 }
 
 uint32_t
-server_pool_idx(struct server_pool *pool, uint8_t *key, uint32_t keylen)
+server_pool_idx(struct server_pool *pool, uint8_t *key, uint32_t keylen, bool next)
 {
     uint32_t hash, idx;
 
@@ -694,12 +694,12 @@ server_pool_idx(struct server_pool *pool, uint8_t *key, uint32_t keylen)
 }
 
 static struct server *
-server_pool_server(struct server_pool *pool, uint8_t *key, uint32_t keylen)
+server_pool_server(struct server_pool *pool, uint8_t *key, uint32_t keylen, bool next)
 {
     struct server *server;
     uint32_t idx;
 
-    idx = server_pool_idx(pool, key, keylen);
+    idx = server_pool_idx(pool, key, keylen, next);
     server = array_get(&pool->server, idx);
 
     log_debug(LOG_VERB, "key '%.*s' on dist %d maps to server '%.*s'", keylen,
@@ -709,8 +709,7 @@ server_pool_server(struct server_pool *pool, uint8_t *key, uint32_t keylen)
 }
 
 struct conn *
-server_pool_conn(struct context *ctx, struct server_pool *pool, uint8_t *key,
-                 uint32_t keylen)
+server_pool_conn(struct context *ctx, struct server_pool *pool, uint8_t *key, uint32_t keylen, bool next)
 {
     rstatus_t status;
     struct server *server;
@@ -722,7 +721,7 @@ server_pool_conn(struct context *ctx, struct server_pool *pool, uint8_t *key,
     }
 
     /* from a given {key, keylen} pick a server from pool */
-    server = server_pool_server(pool, key, keylen);
+    server = server_pool_server(pool, key, keylen, next);
     if (server == NULL) {
         return NULL;
     }

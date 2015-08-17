@@ -250,6 +250,7 @@ done:
     msg->nfrag = 0;
     msg->nfrag_done = 0;
     msg->frag_id = 0;
+    msg->skip_rsp_fd = 0;
 
     msg->narg_start = NULL;
     msg->narg_end = NULL;
@@ -269,6 +270,7 @@ done:
     msg->fdone = 0;
     msg->swallow = 0;
     msg->redis = 0;
+    msg->copyref = 0;
 
     return msg;
 }
@@ -459,7 +461,7 @@ msg_backend_idx(struct msg *msg, uint8_t *key, uint32_t keylen)
     struct conn *conn = msg->owner;
     struct server_pool *pool = conn->owner;
 
-    return server_pool_idx(pool, key, keylen);
+    return server_pool_idx(pool, key, keylen, false);
 }
 
 struct mbuf *

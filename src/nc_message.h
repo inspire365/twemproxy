@@ -203,6 +203,7 @@ struct msg {
     TAILQ_ENTRY(msg)     c_tqe;           /* link in client q */
     TAILQ_ENTRY(msg)     s_tqe;           /* link in server q */
     TAILQ_ENTRY(msg)     m_tqe;           /* link in send q / free q */
+    TAILQ_ENTRY(msg)     copyref_tqe;     /* link in copyref send q / free q */
 
     uint64_t             id;              /* message id */
     struct msg           *peer;           /* message peer */
@@ -248,6 +249,7 @@ struct msg {
     uint32_t             nfrag_done;      /* # fragment done */
     uint64_t             frag_id;         /* id of fragmented message */
     struct msg           **frag_seq;      /* sequence of fragment message, map from keys to fragments*/
+    int                  skip_rsp_fd;     /* the response fd should skip */
 
     err_t                err;             /* errno on error? */
     unsigned             error:1;         /* error? */
@@ -260,6 +262,7 @@ struct msg {
     unsigned             fdone:1;         /* all fragments are done? */
     unsigned             swallow:1;       /* swallow response? */
     unsigned             redis:1;         /* redis? */
+    unsigned             copyref:1;       /* copy ref for duplicated copy forward */
 };
 
 TAILQ_HEAD(msg_tqh, msg);
