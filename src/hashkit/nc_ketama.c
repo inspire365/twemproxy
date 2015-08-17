@@ -25,6 +25,8 @@
 
 #define KETAMA_CONTINUUM_ADDITION   10  /* # extra slots to build into continuum */
 #define KETAMA_POINTS_PER_SERVER    160 /* 40 points per hash */
+//#define KETAMA_CONTINUUM_ADDITION   1 /* # extra slots to build into continuum */
+//#define KETAMA_POINTS_PER_SERVER    1 /* 40 points per hash */
 #define KETAMA_MAX_HOSTLEN          86
 
 static uint32_t
@@ -117,20 +119,22 @@ ketama_update(struct server_pool *pool)
 
         return NC_OK;
     }
-    log_debug(LOG_DEBUG, "%"PRIu32" of %"PRIu32" servers are live for pool "
+    //log_debug(LOG_DEBUG, "%"PRIu32" of %"PRIu32" servers are live for pool "
+    loga("%"PRIu32" of %"PRIu32" servers are live for pool "
               "%"PRIu32" '%.*s'", nlive_server, nserver, pool->idx,
               pool->name.len, pool->name.data);
 
-    continuum_addition = KETAMA_CONTINUUM_ADDITION;
-    points_per_server = KETAMA_POINTS_PER_SERVER;
     /*
      * Allocate the continuum for the pool, the first time, and every time we
      * add a new server to the pool
      */
     if (nlive_server > pool->nserver_continuum) {
         struct continuum *continuum;
-        uint32_t nserver_continuum = nlive_server + continuum_addition;
-        uint32_t ncontinuum = nserver_continuum * points_per_server;
+        //uint32_t nserver_continuum = nlive_server + continuum_addition;
+        //uint32_t ncontinuum = nserver_continuum * points_per_server;
+
+        uint32_t nserver_continuum = nlive_server;
+        uint32_t ncontinuum = nserver_continuum;
 
         continuum = nc_realloc(pool->continuum, sizeof(*continuum) * ncontinuum);
         if (continuum == NULL) {
@@ -139,6 +143,9 @@ ketama_update(struct server_pool *pool)
 
         pool->continuum = continuum;
         pool->nserver_continuum = nserver_continuum;
+        pool->ncontinuum = ncontinuum;
+        loga("pool->continuum: %u  pool->ncontinuum: %u, pool->nserver_continuum: %u",
+             pool->continuum, pool->ncontinuum, pool->nserver_continuum);
         /* pool->ncontinuum is initialized later as it could be <= ncontinuum */
     }
 
@@ -158,62 +165,23 @@ ketama_update(struct server_pool *pool)
             continue;
         }
 
-        pct = (float)server->weight / (float)total_weight;
-        pointer_per_server = (uint32_t) ((floorf((float) (pct * KETAMA_POINTS_PER_SERVER / 4 * (float)nlive_server + 0.0000000001))) * 4);
-        pointer_per_hash = 4;
-
-        log_debug(LOG_VERB, "%.*s weight %"PRIu32" of %"PRIu32" "
-                  "pct %0.5f points per server %"PRIu32"",
-                  server->name.len, server->name.data, server->weight,
-                  total_weight, pct, pointer_per_server);
-
-        for (pointer_index = 1;
-             pointer_index <= pointer_per_server / pointer_per_hash;
-             pointer_index++) {
-
-            char host[KETAMA_MAX_HOSTLEN]= "";
-            size_t hostlen;
-            uint32_t x;
-
-            hostlen = snprintf(host, KETAMA_MAX_HOSTLEN, "%.*s-%u",
-                               server->name.len, server->name.data,
-                               pointer_index - 1);
-
-            for (x = 0; x < pointer_per_hash; x++) {
-                value = ketama_hash(host, hostlen, x);
-                pool->continuum[continuum_index].index = server_index;
-                pool->continuum[continuum_index++].value = value;
-            }
-        }
-        pointer_counter += pointer_per_server;
-    }
-
-    pool->ncontinuum = pointer_counter;
-    qsort(pool->continuum, pool->ncontinuum, sizeof(*pool->continuum),
-          ketama_item_cmp);
-
-    for (pointer_index = 0;
-         pointer_index < ((nlive_server * KETAMA_POINTS_PER_SERVER) - 1);
-         pointer_index++) {
-        if (pointer_index + 1 >= pointer_counter) {
-            break;
-        }
-        ASSERT(pool->continuum[pointer_index].value <=
-               pool->continuum[pointer_index + 1].value);
+        uint32_t hash_value = strtoul (server->name.data, NULL, 10);
+        pool->continuum[continuum_index].index = server_index;
+        pool->continuum[continuum_index++].value = value;
+        loga("+++++++ hash_value: %u index: %u", hash_value, server_index);
     }
 
     log_debug(LOG_VERB, "updated pool %"PRIu32" '%.*s' with %"PRIu32" of "
               "%"PRIu32" servers live in %"PRIu32" slots and %"PRIu32" "
               "active points in %"PRIu32" slots", pool->idx,
               pool->name.len, pool->name.data, nlive_server, nserver,
-              pool->nserver_continuum, pool->ncontinuum,
-              (pool->nserver_continuum + continuum_addition) * points_per_server);
+              pool->nserver_continuum, pool->ncontinuum, nserver);
 
     return NC_OK;
 }
 
 uint32_t
-ketama_dispatch(struct continuum *continuum, uint32_t ncontinuum, uint32_t hash)
+ketama_dispatch(struct continuum *continuum, uint32_t ncontinuum, uint32_t hash, bool next)
 {
     struct continuum *begin, *end, *left, *right, *middle;
 
@@ -236,5 +204,16 @@ ketama_dispatch(struct continuum *continuum, uint32_t ncontinuum, uint32_t hash)
         right = begin;
     }
 
+    loga("ncontinuum: %u hash: %u before right: %p index: %d", ncontinuum, hash, right, right->index);
+
+    if(next)
+    {
+      right += 1;
+      if(right == end) right = begin;
+    }
+
+    loga("hash: %u after right: %p index: %d", hash, right, right->index);
+
     return right->index;
 }
+
