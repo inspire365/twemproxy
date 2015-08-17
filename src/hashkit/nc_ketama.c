@@ -171,12 +171,6 @@ ketama_update(struct server_pool *pool)
         loga("+++++++ hash_value: %u index: %u", hash_value, server_index);
     }
 
-    log_debug(LOG_VERB, "updated pool %"PRIu32" '%.*s' with %"PRIu32" of "
-              "%"PRIu32" servers live in %"PRIu32" slots and %"PRIu32" "
-              "active points in %"PRIu32" slots", pool->idx,
-              pool->name.len, pool->name.data, nlive_server, nserver,
-              pool->nserver_continuum, pool->ncontinuum, nserver);
-
     return NC_OK;
 }
 
