@@ -339,11 +339,10 @@ struct msg* copy_msg(struct msg* src)
       continue;
 
     mlen = mbuf_length(mbuf);
-    loga("append mbuf len %"PRIu64, mlen);
+    //loga("append mbuf len %"PRIu64, mlen);
     msg_append(dst, mbuf->pos, mlen);
   }
 
-  //dst->mlen    = src->mlen;
   dst->type    = src->type;
   dst->state   = src->state;
   dst->narg    = src->narg;
