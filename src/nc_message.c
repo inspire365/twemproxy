@@ -327,30 +327,30 @@ msg_get(struct conn *conn, bool request, bool redis)
 struct msg* copy_msg(struct msg* src)
 {
   ASSERT(src);
+  size_t mlen = 0;
+  struct mbuf *nbuf;
   struct mbuf *mbuf;
   struct msg* dst = msg_get(src->owner, src->request, src->redis);
 
-  STAILQ_FOREACH(mbuf, &src->mhdr, next)
+  for (mbuf = STAILQ_FIRST(&src->mhdr); mbuf != NULL; mbuf = nbuf)
   {
-    uint8_t *p, *q;
-    long int len;
+    nbuf = STAILQ_NEXT(mbuf, next);
+    if (mbuf_empty(mbuf))
+      continue;
 
-    p = mbuf->start;
-    q = mbuf->last;
-    len = q - p;
-
-    struct mbuf* m = mbuf_get();
-    mbuf_insert(&dst->mhdr, m);
-    dst->pos = mbuf->pos;
-
-    mbuf_copy(m, p, len);
+    mlen = mbuf_length(mbuf);
+    loga("append mbuf len %"PRIu64, mlen);
+    msg_append(dst, mbuf->pos, mlen);
   }
-  dst->mlen  = src->mlen;
-  dst->type  = src->type;
-  dst->state = src->state;
-  dst->narg  = src->narg;
-  dst->rnarg = src->rnarg;
-  dst->rlen  = src->rlen;
+
+  //dst->mlen    = src->mlen;
+  dst->type    = src->type;
+  dst->state   = src->state;
+  dst->narg    = src->narg;
+  dst->rnarg   = src->rnarg;
+  dst->rlen    = src->rlen;
+  dst->result  = src->result;
+  dst->integer = src->integer;
 
   return dst;
 }
