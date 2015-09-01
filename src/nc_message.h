@@ -248,7 +248,6 @@ struct msg {
     uint32_t             nfrag_done;      /* # fragment done */
     uint64_t             frag_id;         /* id of fragmented message */
     struct msg           **frag_seq;      /* sequence of fragment message, map from keys to fragments*/
-    int                  skip_rsp_fd;     /* the response fd should skip */
 
     err_t                err;             /* errno on error? */
     unsigned             error:1;         /* error? */
