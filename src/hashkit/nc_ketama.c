@@ -198,7 +198,8 @@ ketama_dispatch(struct continuum *continuum, uint32_t ncontinuum, uint32_t hash,
         right = begin;
     }
 
-    loga("ncontinuum: %u hash: %u before right: %p index: %d", ncontinuum, hash, right, right->index);
+    loga("ncontinuum: %u hash: %u before right: %p index: %d, next: %s",
+         ncontinuum, hash, right, right->index, (next ? "true" : "false"));
 
     if(next)
     {

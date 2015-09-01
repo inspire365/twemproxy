@@ -270,7 +270,7 @@ done:
     msg->fdone = 0;
     msg->swallow = 0;
     msg->redis = 0;
-    msg->copyref = 0;
+    msg->copy = 0;
 
     return msg;
 }
@@ -322,6 +322,37 @@ msg_get(struct conn *conn, bool request, bool redis)
               msg, msg->id, msg->request, conn->sd);
 
     return msg;
+}
+
+struct msg* copy_msg(struct msg* src)
+{
+  ASSERT(src);
+  struct mbuf *mbuf;
+  struct msg* dst = msg_get(src->owner, src->request, src->redis);
+
+  STAILQ_FOREACH(mbuf, &src->mhdr, next)
+  {
+    uint8_t *p, *q;
+    long int len;
+
+    p = mbuf->start;
+    q = mbuf->last;
+    len = q - p;
+
+    struct mbuf* m = mbuf_get();
+    mbuf_insert(&dst->mhdr, m);
+    dst->pos = mbuf->pos;
+
+    mbuf_copy(m, p, len);
+  }
+  dst->mlen  = src->mlen;
+  dst->type  = src->type;
+  dst->state = src->state;
+  dst->narg  = src->narg;
+  dst->rnarg = src->rnarg;
+  dst->rlen  = src->rlen;
+
+  return dst;
 }
 
 struct msg *

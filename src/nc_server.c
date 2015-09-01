@@ -673,7 +673,7 @@ server_pool_idx(struct server_pool *pool, uint8_t *key, uint32_t keylen, bool ne
     switch (pool->dist_type) {
     case DIST_KETAMA:
         hash = server_pool_hash(pool, key, keylen);
-        idx = ketama_dispatch(pool->continuum, pool->ncontinuum, hash, false);
+        idx = ketama_dispatch(pool->continuum, pool->ncontinuum, hash, next);
         break;
 
     case DIST_MODULA:
@@ -702,7 +702,7 @@ server_pool_server(struct server_pool *pool, uint8_t *key, uint32_t keylen, bool
     idx = server_pool_idx(pool, key, keylen, next);
     server = array_get(&pool->server, idx);
 
-    log_debug(LOG_VERB, "key '%.*s' on dist %d maps to server '%.*s'", keylen,
+    loga("key '%.*s' on dist %d maps to server '%.*s'", keylen,
               key, pool->dist_type, server->pname.len, server->pname.data);
 
     return server;

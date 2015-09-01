@@ -2857,6 +2857,8 @@ redis_add_auth(struct context *ctx, struct conn *c_conn, struct conn *s_conn)
         return status;
     }
 
+   loga("add auth msg: %p", msg);
+
     msg->swallow = 1;
     s_conn->enqueue_inq(ctx, s_conn, msg);
     s_conn->authenticated = 1;

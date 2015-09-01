@@ -262,7 +262,7 @@ struct msg {
     unsigned             fdone:1;         /* all fragments are done? */
     unsigned             swallow:1;       /* swallow response? */
     unsigned             redis:1;         /* redis? */
-    unsigned             copyref:1;       /* copy ref for duplicated copy forward */
+    unsigned             copy:1;       /* copy for duplicated copy forward */
 };
 
 TAILQ_HEAD(msg_tqh, msg);
@@ -275,6 +275,9 @@ void msg_init(void);
 void msg_deinit(void);
 struct string *msg_type_string(msg_type_t type);
 struct msg *msg_get(struct conn *conn, bool request, bool redis);
+
+struct msg* copy_msg(struct msg* src);
+
 void msg_put(struct msg *msg);
 struct msg *msg_get_error(bool redis, err_t err);
 void msg_dump(struct msg *msg, int level);
