@@ -553,6 +553,61 @@ req_forward_stats(struct context *ctx, struct server *server, struct msg *msg)
 }
 
 static void
+req_forward_dup(struct context *ctx, struct conn *c_conn, struct msg *msg)
+{
+    rstatus_t status;
+    struct conn *s_conn;
+    struct server_pool *pool;
+    uint8_t *key;
+    uint32_t keylen;
+    struct keypos *kpos;
+
+    ASSERT(c_conn->client && !c_conn->proxy);
+
+    pool = c_conn->owner;
+
+    ASSERT(array_n(msg->keys) > 0);
+    kpos = array_get(msg->keys, 0);
+    key = kpos->start;
+    keylen = (uint32_t)(kpos->end - kpos->start);
+
+    s_conn = server_pool_conn(ctx, c_conn->owner, key, keylen, true);
+    if (s_conn == NULL) {
+        req_forward_error(ctx, c_conn, msg);
+        return;
+    }
+    ASSERT(!s_conn->client && !s_conn->proxy);
+
+    /* enqueue the message (request) into server inq */
+    if (TAILQ_EMPTY(&s_conn->imsg_q)) {
+        status = event_add_out(ctx->evb, s_conn);
+        if (status != NC_OK) {
+            req_forward_error(ctx, c_conn, msg);
+            s_conn->err = errno;
+            return;
+        }
+    }
+
+    if (!conn_authenticated(s_conn)) {
+        status = msg->add_auth(ctx, c_conn, s_conn);
+        if (status != NC_OK) {
+            req_forward_error(ctx, c_conn, msg);
+            s_conn->err = errno;
+            return;
+        }
+    }
+
+    /* copy message and forward */
+    struct msg* m = copy_msg(msg);
+    m->copy = 1;                    // mark as copy one
+    s_conn->enqueue_inq(ctx, s_conn, m);
+
+    log_debug(LOG_VERB, "copy forward from c %d to s %d req %"PRIu64" len %"PRIu32
+              " type %d with key '%.*s'", c_conn->sd, s_conn->sd, m->id,
+              m->mlen, m->type, keylen, key);
+}
+
+static void
 req_forward(struct context *ctx, struct conn *c_conn, struct msg *msg)
 {
     rstatus_t status;
@@ -609,6 +664,9 @@ req_forward(struct context *ctx, struct conn *c_conn, struct msg *msg)
     log_debug(LOG_VERB, "forward from c %d to s %d req %"PRIu64" len %"PRIu32
               " type %d with key '%.*s'", c_conn->sd, s_conn->sd, msg->id,
               msg->mlen, msg->type, keylen, key);
+
+    // one more message to duplicate server
+    req_forward_dup(ctx, c_conn, msg);
 }
 
 void

@@ -218,15 +218,17 @@ rsp_filter(struct context *ctx, struct conn *conn, struct msg *msg)
         return true;
     }
 
-    if(conn->sd == pmsg->skip_rsp_fd)
+    if(pmsg->copy)
     {
-      log_debug(LOG_INFO, "skip rsp %"PRIu64" len %"PRIu32" of req "
+      loga("skip rsp %"PRIu64" len %"PRIu32" of req "
                 "%"PRIu64" on s %d", msg->id, msg->mlen, pmsg->id, conn->sd);
+      conn->dequeue_outq(ctx, conn, pmsg);
+      pmsg->done = 1;
+
       rsp_put(msg);
       req_put(pmsg);
       return true;
     }
-
     return false;
 }
 

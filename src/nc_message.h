@@ -203,7 +203,6 @@ struct msg {
     TAILQ_ENTRY(msg)     c_tqe;           /* link in client q */
     TAILQ_ENTRY(msg)     s_tqe;           /* link in server q */
     TAILQ_ENTRY(msg)     m_tqe;           /* link in send q / free q */
-    TAILQ_ENTRY(msg)     copyref_tqe;     /* link in copyref send q / free q */
 
     uint64_t             id;              /* message id */
     struct msg           *peer;           /* message peer */
@@ -262,7 +261,7 @@ struct msg {
     unsigned             fdone:1;         /* all fragments are done? */
     unsigned             swallow:1;       /* swallow response? */
     unsigned             redis:1;         /* redis? */
-    unsigned             copy:1;       /* copy for duplicated copy forward */
+    unsigned             copy:1;          /* copy for duplicated copy forward */
 };
 
 TAILQ_HEAD(msg_tqh, msg);
