@@ -562,6 +562,73 @@ req_forward_dup(struct context *ctx, struct conn *c_conn, struct msg *msg)
     uint32_t keylen;
     struct keypos *kpos;
 
+    switch(msg->type)
+    {
+      case MSG_REQ_REDIS_DEL:
+      case MSG_REQ_REDIS_EXPIRE:
+      case MSG_REQ_REDIS_EXPIREAT:
+      case MSG_REQ_REDIS_PEXPIRE:
+      case MSG_REQ_REDIS_PEXPIREAT:
+      case MSG_REQ_REDIS_PERSIST:
+      case MSG_REQ_REDIS_SORT:
+      case MSG_REQ_REDIS_APPEND:
+      case MSG_REQ_REDIS_DECR:
+      case MSG_REQ_REDIS_DECRBY:
+      case MSG_REQ_REDIS_GETSET:
+      case MSG_REQ_REDIS_INCR:
+      case MSG_REQ_REDIS_INCRBY:
+      case MSG_REQ_REDIS_INCRBYFLOAT:
+      case MSG_REQ_REDIS_MSET:
+      case MSG_REQ_REDIS_PSETEX:
+      case MSG_REQ_REDIS_RESTORE:
+      case MSG_REQ_REDIS_SET:
+      case MSG_REQ_REDIS_SETBIT:
+      case MSG_REQ_REDIS_SETEX:
+      case MSG_REQ_REDIS_SETNX:
+      case MSG_REQ_REDIS_SETRANGE:
+      case MSG_REQ_REDIS_HDEL:
+      case MSG_REQ_REDIS_HINCRBY:
+      case MSG_REQ_REDIS_HINCRBYFLOAT:
+      case MSG_REQ_REDIS_HMSET:
+      case MSG_REQ_REDIS_HSET:
+      case MSG_REQ_REDIS_HSETNX:
+      case MSG_REQ_REDIS_LINSERT:
+      case MSG_REQ_REDIS_LPOP:
+      case MSG_REQ_REDIS_LPUSH:
+      case MSG_REQ_REDIS_LPUSHX:
+      case MSG_REQ_REDIS_LREM:
+      case MSG_REQ_REDIS_LSET:
+      case MSG_REQ_REDIS_LTRIM:
+      case MSG_REQ_REDIS_PFADD:
+      case MSG_REQ_REDIS_PFMERGE:
+      case MSG_REQ_REDIS_RPOP:
+      case MSG_REQ_REDIS_RPOPLPUSH:
+      case MSG_REQ_REDIS_RPUSH:
+      case MSG_REQ_REDIS_RPUSHX:
+      case MSG_REQ_REDIS_SADD:
+      case MSG_REQ_REDIS_SDIFFSTORE:
+      case MSG_REQ_REDIS_SINTERSTORE:
+      case MSG_REQ_REDIS_SMOVE:
+      case MSG_REQ_REDIS_SPOP:
+      case MSG_REQ_REDIS_SREM:
+      case MSG_REQ_REDIS_SUNIONSTORE:
+      case MSG_REQ_REDIS_ZINCRBY:
+      case MSG_REQ_REDIS_ZINTERSTORE:
+      case MSG_REQ_REDIS_ZREM:
+      case MSG_REQ_REDIS_ZREMRANGEBYRANK:
+      case MSG_REQ_REDIS_ZREMRANGEBYLEX:
+      case MSG_REQ_REDIS_ZREMRANGEBYSCORE:
+      case MSG_REQ_REDIS_ZUNIONSTORE:
+      case MSG_REQ_REDIS_EVAL:
+      case MSG_REQ_REDIS_EVALSHA:
+        goto dup_write;
+
+      default:
+        return ;
+    }
+
+dup_write:
+
     ASSERT(c_conn->client && !c_conn->proxy);
 
     pool = c_conn->owner;
