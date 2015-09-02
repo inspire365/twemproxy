@@ -167,8 +167,8 @@ ketama_update(struct server_pool *pool)
 
         uint32_t hash_value = strtoul (server->name.data, NULL, 10);
         pool->continuum[continuum_index].index = server_index;
-        pool->continuum[continuum_index++].value = value;
-        loga("+++++++ hash_value: %u index: %u", hash_value, server_index);
+        pool->continuum[continuum_index++].value = hash_value;
+        loga("+++++++ hash_value: %u index: %u +++++++", hash_value, server_index);
     }
 
     return NC_OK;
@@ -198,8 +198,8 @@ ketama_dispatch(struct continuum *continuum, uint32_t ncontinuum, uint32_t hash,
         right = begin;
     }
 
-    loga("ncontinuum: %u hash: %u before right: %p index: %d, next: %s",
-         ncontinuum, hash, right, right->index, (next ? "true" : "false"));
+    log_debug(LOG_INFO,"ncontinuum: %u hash: %u before right: %p index: %d, right_value: %u next: %s",
+         ncontinuum, hash, right, right->index, right->value, (next ? "true" : "false"));
 
     if(next)
     {
@@ -207,7 +207,7 @@ ketama_dispatch(struct continuum *continuum, uint32_t ncontinuum, uint32_t hash,
       if(right == end) right = begin;
     }
 
-    loga("hash: %u after right: %p index: %d", hash, right, right->index);
+    log_debug(LOG_INFO,"hash: %u after right: %p index: %d", hash, right, right->index);
 
     return right->index;
 }
