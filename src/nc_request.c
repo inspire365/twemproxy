@@ -662,7 +662,7 @@ req_dup:
     m->copy = 1;                    // mark as copy one
     s_conn->enqueue_inq(ctx, s_conn, m);
 
-    loga("copy forward from c %d to s %d req %"PRIu64" len %"PRIu32
+    log_debug(LOG_VERB,"copy forward from c %d to s %d req %"PRIu64" len %"PRIu32
               " type %d with key '%.*s'", c_conn->sd, s_conn->sd, m->id,
               m->mlen, m->type, keylen, key);
 }
@@ -721,7 +721,7 @@ req_forward(struct context *ctx, struct conn *c_conn, struct msg *msg)
 
     req_forward_stats(ctx, s_conn->owner, msg);
 
-    loga("forward from c %d to s %d req %"PRIu64" len %"PRIu32
+    log_debug(LOG_VERB,"forward from c %d to s %d req %"PRIu64" len %"PRIu32
               " type %d with key '%.*s'", c_conn->sd, s_conn->sd, msg->id,
               msg->mlen, msg->type, keylen, key);
 

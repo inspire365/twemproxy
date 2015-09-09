@@ -431,7 +431,7 @@ msg_dump(struct msg *msg, int level)
         return;
     }
 
-    loga("msg dump id %"PRIu64" request %d len %"PRIu32" type %d done %d "
+    log_debug(LOG_DEBUG, "msg dump id %"PRIu64" request %d len %"PRIu32" type %d done %d "
          "error %d (err %d)", msg->id, msg->request, msg->mlen, msg->type,
          msg->done, msg->error, msg->err);
 
@@ -439,7 +439,11 @@ msg_dump(struct msg *msg, int level)
         uint8_t *p, *q;
         long int len;
 
-        p = mbuf->start;
+        /* Note: I do think this is not the proper way to dump the message */
+        /* start is the const start of buffer, while pos is the read marker*/
+        /* of the buffer. Maybe dump start from mbuf->pos is more proper   */
+        /* p = mbuf->start; */
+        p = mbuf->pos;    /* change above to this one */
         q = mbuf->last;
         len = q - p;
 
