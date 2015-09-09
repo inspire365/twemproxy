@@ -600,34 +600,27 @@ req_forward_dup(struct context *ctx, struct conn *c_conn, struct msg *msg)
       case MSG_REQ_REDIS_LSET:
       case MSG_REQ_REDIS_LTRIM:
       case MSG_REQ_REDIS_PFADD:
-      case MSG_REQ_REDIS_PFMERGE:
       case MSG_REQ_REDIS_RPOP:
       case MSG_REQ_REDIS_RPOPLPUSH:
       case MSG_REQ_REDIS_RPUSH:
       case MSG_REQ_REDIS_RPUSHX:
       case MSG_REQ_REDIS_SADD:
-      case MSG_REQ_REDIS_SDIFFSTORE:
-      case MSG_REQ_REDIS_SINTERSTORE:
-      case MSG_REQ_REDIS_SMOVE:
       case MSG_REQ_REDIS_SPOP:
       case MSG_REQ_REDIS_SREM:
-      case MSG_REQ_REDIS_SUNIONSTORE:
       case MSG_REQ_REDIS_ZINCRBY:
-      case MSG_REQ_REDIS_ZINTERSTORE:
       case MSG_REQ_REDIS_ZREM:
       case MSG_REQ_REDIS_ZREMRANGEBYRANK:
       case MSG_REQ_REDIS_ZREMRANGEBYLEX:
       case MSG_REQ_REDIS_ZREMRANGEBYSCORE:
-      case MSG_REQ_REDIS_ZUNIONSTORE:
       case MSG_REQ_REDIS_EVAL:
       case MSG_REQ_REDIS_EVALSHA:
-        goto dup_write;
+        goto req_dup;
 
       default:
         return ;
     }
 
-dup_write:
+req_dup:
 
     ASSERT(c_conn->client && !c_conn->proxy);
 
@@ -744,7 +737,7 @@ req_recv_done(struct context *ctx, struct conn *conn, struct msg *msg,
     struct server_pool *pool;
     struct msg_tqh frag_msgq;
     struct msg *sub_msg;
-    struct msg *tmsg; 			/* tmp next message */
+    struct msg *tmsg;      /* tmp next message */
 
     ASSERT(conn->client && !conn->proxy);
     ASSERT(msg->request);

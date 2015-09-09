@@ -8,17 +8,14 @@ vec=[]
 
 counter=0
 
-for i in 0..2
+for i in 0..500
   key = "k_" + i.to_s
   vec.push(key)
-  value = "v_" + i.to_s
-  vec.push(value)
   counter += 1
+  printf "%s\n", key
 end
 
-print vec
-
-ret=redis.mset(vec)
+ret=redis.del(vec)
 
 print "--------------\n"
 print ret

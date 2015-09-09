@@ -5,7 +5,7 @@
 
 ## What I do to twemproxy
 
-I change ketama hash to **consistent hash** and also forward a copy of data to the next node of the hash ring. This makes twemproxy like [Amazon Dynamo](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/decandia07dynamo.pdf). It will be better for node failure.
+I change ketama hash to **consistent hash** and also forward a copy of data to the next node of the hash ring. This makes twemproxy like [Amazon Dynamo](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/decandia07dynamo.pdf). It will be better for node failure. Only Redis has been tested at the moment.
 
 
 ## Build
